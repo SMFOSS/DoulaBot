@@ -19,6 +19,7 @@ def test_bot_factory():
         def loggit(self, c, e):
             log = getattr(self, '_irc_log', [])
             log.append(e.arguments()[0])
+            #self._irc_log = log
     return TheTestBot()
 
 
@@ -61,7 +62,7 @@ class TestRepoBot(BaseBotCase):
         BaseBotCase.setUp(self)
         self.bot.connection = Mock()        
 
-    @patch('doula.bot.QBot.enqueue')
+    @patch('doulabot.bot.QBot.enqueue')
     def test_release(self, q_mock):
         from doula.pypkg import pyrelease_task
         self.bot.command('bob!bob@123', 'rel', 'path-0.2.3@branchname')
@@ -72,12 +73,12 @@ class TestRepoBot(BaseBotCase):
         assert branch == 'branchname'
         assert repo == 'svn://svn/s/py'
 
-    @patch('doula.bot.QBot.enqueue')
+    @patch('doulabot.bot.QBot.enqueue')
     def test_java_release(self, q_mock):
         self.bot.connection = Mock()
         self.bot.command('bob!bob@123', 'reljava', 'billingdal-1.0@branchname')
 
-    @patch('doula.bot.QBot.enqueue')
+    @patch('doulabot.bot.QBot.enqueue')
     def test_java_release_assert_version(self, q_mock):
         try:
             self.bot.command('bob!bob@123', 'reljava', 'billingdal@branchname')
@@ -86,7 +87,7 @@ class TestRepoBot(BaseBotCase):
             assert isinstance(e, AssertionError), e
             assert e.message == 'You must include a srctree and a version'
 
-    @patch('doula.bot.QBot.enqueue')
+    @patch('doulabot.bot.QBot.enqueue')
     def test_java_release_assert_srctree(self, q_mock):
         try:
             self.bot.command('bob!bob@123', 'reljava', 'bilingdal-0.1@branchname')
