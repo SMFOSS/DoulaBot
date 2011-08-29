@@ -22,7 +22,7 @@ import redis
 import select
 import sys
 import traceback
-import time
+
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +57,8 @@ class GIRC(IRC):
 class BaseBot(SimpleIRCClient):
     nickname = 'bot' # command name
     channel = '#testing'
-    server = 'irc.corp.surveymonkey.com'
+    #server = 'irc.corp.surveymonkey.com'
+    server = 'irc'
     port = 6667
     localaddress=""
     localport=0
@@ -215,17 +216,6 @@ class BaseBot(SimpleIRCClient):
             self.connection.disconnect()
 
 
-# parser = argparse.ArgumentParser(description='Process some integers.')
-#  parser.add_argument('integers', metavar='N', type=int, nargs='+',
-#                    help='an integer for the accumulator')
-# parser.add_argument('--sum', dest='accumulate', action='store_const',
-#                    const=sum, default=max,
-#                    help='sum the integers (default: find the max)')
-
-# args = parser.parse_args()
-# print args.accumulate(args.integers)
-
-
 def run_doulabot(args=None):
     if args is None:
         parser = argparse.ArgumentParser(description='Run the doulabot')
@@ -255,6 +245,8 @@ class DoulaBot(QBot):
     """
     Bot for pushing and releasing
     """
+    default_gitssh = "git@code.corp.surveymonkey.com"
+    default_ghuser = "devmonkeys"
     svnprefix = "svn://svn/s"
     default_svntree = "py"
     nickname = 'doula'
@@ -270,7 +262,6 @@ class DoulaBot(QBot):
     v_splitter = re.compile('(rc|a|b|dev|\.)')
     re_d = re.compile('\d')
     cmd_end = ":"
-
 
     @property
     def exec_str(self):
@@ -327,10 +318,10 @@ class DoulaBot(QBot):
             return self.broadcast("%s: you have to give me a path to work with..." %user)
         return self.enqueue(qtasks.svn_ls, args)
 
-    @when(command, cmd_is % 'rel')
-    def release(self, source, command, args):
+    def _prep_release(self, source, args):
         """
-        doula: rel: howler-0.9.8rc2@blah
+        Does some basic error checking and data preparation to be used
+        by commands doing a release.
         """
         user, handle = source.split('!')
         if args == '':
@@ -341,13 +332,33 @@ class DoulaBot(QBot):
         branch = None
         if len(parts) == 2:
             pkgv, branch = parts
+        tokens = pkgv.split('/')            
+        return pkgv, branch, tokens, user
 
-        tokens = pkgv.split('/')
+    @when(command, cmd_is % 'relsvn')
+    def svn_release(self, source, command, args):
+        """
+        doula: rel: howler-0.9.8rc2@blah
+        """
+        pkgv, branch, tokens, user = self._prep_release(source, args)
+
         svntree = self.default_svntree
         if len(tokens) == 2:
             svntree, pkgv = tokens
-        svnprefix = utils.urljoin(self.svnprefix, self.default_svntree)
-        return self.enqueue(pypkg.pyrelease_task, pkgv, branch, svnprefix)
+
+        svnprefix = utils.urljoin(self.svnprefix, svntree)
+        return self.enqueue(pypkg.pyrelease_svn_task, pkgv, branch, svnprefix, user)
+
+    @when(command, cmd_is % 'rel')
+    def git_release(self, source, command, args):
+        pkgv, branch, tokens, user = self._prep_release(source, args)
+
+        ghuser = self.default_ghuser
+        if len(tokens) == 2:
+            ghuser, pkgv = tokens
+
+        gitaddress = "%s:%s" %(self.default_gitssh, ghuser)
+        return self.enqueue(pypkg.pyrelease_git_task, pkgv, branch, gitaddress, user)
 
     javasrc = set(('billingdal', 'userdal'))
 
