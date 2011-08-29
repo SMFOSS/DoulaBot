@@ -3,6 +3,7 @@ monkey.patch_all()
 
 from copy import copy
 from doula import java
+from doula import push as pushmod
 from doula import pypkg
 from doula import qtasks
 from doula import rq
@@ -403,7 +404,7 @@ class DoulaBot(QBot):
         self.enqueue(task, app, mt)
 
     @when(command, cmd_is % 'push')
-    def push(self, source, command, args, task=push.push2):
+    def push(self, source, command, args, task=pushmod.push2):
         """
         doula:push: howler-0.9.8rc2 -> billweb@mt2,billweb@mt2
         """
