@@ -384,7 +384,7 @@ class DoulaBot(QBot):
 
     @when(command, cmd_is % 'help')
     def help(self, source, command, args):
-        for name in 'current_version', 'release', 'versions', 'push', 'push2', 'cycle', 'cycle2', 'release_java':
+        for name in 'current_version', 'release', 'versions', 'push', 'cycle', 'release_java':
             method = getattr(self, name)
             self.broadcast(method.__doc__.strip())
 
