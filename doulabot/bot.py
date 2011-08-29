@@ -3,13 +3,14 @@ monkey.patch_all()
 
 from copy import copy
 from doula import java
-from doula import push
 from doula import pypkg
 from doula import qtasks
 from doula import rq
 from doula import utils
 from gevent import sleep, spawn
-from irclib import IRC, SimpleIRCClient, ServerConnectionError
+from irclib import IRC
+from irclib import ServerConnectionError
+from irclib import SimpleIRCClient
 from itertools import count
 from lxml import html
 from peak.rules import abstract
@@ -388,7 +389,7 @@ class DoulaBot(QBot):
             self.broadcast(method.__doc__.strip())
 
     @when(command, cmd_is % 'cycle')
-    def cycle(self, source, command, args, task=qtasks.cycle):
+    def cycle(self, source, command, args, task=qtasks.cycle2):
         """
         doula:cycle: billsvc@mt1
         """
@@ -401,23 +402,8 @@ class DoulaBot(QBot):
         self.broadcast('/me queues cycle for %s on %s' %(app, mt))
         self.enqueue(task, app, mt)
 
-    @when(command, cmd_is % 'cycle2')
-    def cycle2(self, source, command, args):
-        """
-        doula:cycle2: bill*@mt2
-        doula:cycle2: bill*@mt3 +hard
-        """
-        self.cycle(source, command, args, task=qtasks.cycle2)
-
-    @when(command, cmd_is % 'push2')
-    def push2(self, source, command, args):
-        """
-        doula:push2: SMAssets-0.9 -> assets@mt2,assets@mt1
-        """
-        self.push(source, command, args, task=push.push2)
-
     @when(command, cmd_is % 'push')
-    def push(self, source, command, args, task=push.push):
+    def push(self, source, command, args, task=push.push2):
         """
         doula:push: howler-0.9.8rc2 -> billweb@mt2,billweb@mt2
         """
