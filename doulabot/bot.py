@@ -3,13 +3,14 @@ monkey.patch_all()
 
 from copy import copy
 from doula import java
-from doula import push
 from doula import pypkg
 from doula import qtasks
 from doula import rq
 from doula import utils
 from gevent import sleep, spawn
-from irclib import IRC, SimpleIRCClient, ServerConnectionError
+from irclib import IRC
+from irclib import ServerConnectionError
+from irclib import SimpleIRCClient
 from itertools import count
 from lxml import html
 from peak.rules import abstract
@@ -22,7 +23,7 @@ import redis
 import select
 import sys
 import traceback
-import time
+
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +58,8 @@ class GIRC(IRC):
 class BaseBot(SimpleIRCClient):
     nickname = 'bot' # command name
     channel = '#testing'
-    server = 'irc.corp.surveymonkey.com'
+    #server = 'irc.corp.surveymonkey.com'
+    server = 'irc'
     port = 6667
     localaddress=""
     localport=0
@@ -244,6 +246,8 @@ class DoulaBot(QBot):
     """
     Bot for pushing and releasing
     """
+    default_gitssh = "git@code.corp.surveymonkey.com"
+    default_ghuser = "devmonkeys"
     svnprefix = "svn://svn/s"
     default_svntree = "py"
     nickname = 'doula'
@@ -259,7 +263,6 @@ class DoulaBot(QBot):
     v_splitter = re.compile('(rc|a|b|dev|\.)')
     re_d = re.compile('\d')
     cmd_end = ":"
-
 
     @property
     def exec_str(self):
@@ -316,10 +319,10 @@ class DoulaBot(QBot):
             return self.broadcast("%s: you have to give me a path to work with..." %user)
         return self.enqueue(qtasks.svn_ls, args)
 
-    @when(command, cmd_is % 'rel')
-    def release(self, source, command, args):
+    def _prep_release(self, source, args):
         """
-        doula: rel: howler-0.9.8rc2@blah
+        Does some basic error checking and data preparation to be used
+        by commands doing a release.
         """
         user, handle = source.split('!')
         if args == '':
@@ -330,13 +333,33 @@ class DoulaBot(QBot):
         branch = None
         if len(parts) == 2:
             pkgv, branch = parts
+        tokens = pkgv.split('/')            
+        return pkgv, branch, tokens, user
 
-        tokens = pkgv.split('/')
+    @when(command, cmd_is % 'relsvn')
+    def svn_release(self, source, command, args):
+        """
+        doula: rel: howler-0.9.8rc2@blah
+        """
+        pkgv, branch, tokens, user = self._prep_release(source, args)
+
         svntree = self.default_svntree
         if len(tokens) == 2:
             svntree, pkgv = tokens
-        svnprefix = utils.urljoin(self.svnprefix, self.default_svntree)
-        return self.enqueue(pypkg.pyrelease_task, pkgv, branch, svnprefix)
+
+        svnprefix = utils.urljoin(self.svnprefix, svntree)
+        return self.enqueue(pypkg.pyrelease_svn_task, pkgv, branch, svnprefix, user)
+
+    @when(command, cmd_is % 'rel')
+    def git_release(self, source, command, args):
+        pkgv, branch, tokens, user = self._prep_release(source, args)
+
+        ghuser = self.default_ghuser
+        if len(tokens) == 2:
+            ghuser, pkgv = tokens
+
+        gitaddress = "%s:%s" %(self.default_gitssh, ghuser)
+        return self.enqueue(pypkg.pyrelease_git_task, pkgv, branch, gitaddress, user)
 
     javasrc = set(('billingdal', 'userdal'))
 
@@ -361,12 +384,12 @@ class DoulaBot(QBot):
 
     @when(command, cmd_is % 'help')
     def help(self, source, command, args):
-        for name in 'current_version', 'release', 'versions', 'push', 'push2', 'cycle', 'cycle2', 'release_java':
+        for name in 'current_version', 'release', 'versions', 'push', 'cycle', 'release_java':
             method = getattr(self, name)
             self.broadcast(method.__doc__.strip())
 
     @when(command, cmd_is % 'cycle')
-    def cycle(self, source, command, args, task=qtasks.cycle):
+    def cycle(self, source, command, args, task=qtasks.cycle2):
         """
         doula:cycle: billsvc@mt1
         """
@@ -379,23 +402,8 @@ class DoulaBot(QBot):
         self.broadcast('/me queues cycle for %s on %s' %(app, mt))
         self.enqueue(task, app, mt)
 
-    @when(command, cmd_is % 'cycle2')
-    def cycle2(self, source, command, args):
-        """
-        doula:cycle2: bill*@mt2
-        doula:cycle2: bill*@mt3 +hard
-        """
-        self.cycle(source, command, args, task=qtasks.cycle2)
-
-    @when(command, cmd_is % 'push2')
-    def push2(self, source, command, args):
-        """
-        doula:push2: SMAssets-0.9 -> assets@mt2,assets@mt1
-        """
-        self.push(source, command, args, task=push.push2)
-
     @when(command, cmd_is % 'push')
-    def push(self, source, command, args, task=push.push):
+    def push(self, source, command, args, task=push.push2):
         """
         doula:push: howler-0.9.8rc2 -> billweb@mt2,billweb@mt2
         """

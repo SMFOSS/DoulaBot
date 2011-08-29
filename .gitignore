@@ -2,3 +2,4 @@
 *~
 *.egg-info
 /.coverage
+/doulabot/bot_flymake.py
