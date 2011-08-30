@@ -314,7 +314,10 @@ class DoulaBot(QBot):
             self.broadcast("/me shakes it's metal booty for %s" %user)
 
     @when(command, cmd_is % 'svn')
-    def svn(self, source, command, args):
+    def svnls(self, source, command, args):
+        """
+        dbot: svnls: tree/path
+        """
         user, handle = source.split('!')
         if args == '':
             return self.broadcast("%s: you have to give me a path to work with..." %user)
@@ -340,7 +343,7 @@ class DoulaBot(QBot):
     @when(command, cmd_is % 'relsvn')
     def svn_release(self, source, command, args):
         """
-        doula: rel: howler-0.9.8rc2@blah
+        dbot: rel: [tree_other_than_py]pkg-0.9.8rc2[@branch]
         """
         pkgv, branch, tokens, user = self._prep_release(source, args)
 
@@ -353,6 +356,9 @@ class DoulaBot(QBot):
 
     @when(command, cmd_is % 'rel')
     def git_release(self, source, command, args):
+        """
+        dbot: rel: [user_or_group/]pkg-0.1.1[@branch] (from git)
+        """
         pkgv, branch, tokens, user = self._prep_release(source, args)
 
         ghuser = self.default_ghuser
@@ -385,14 +391,14 @@ class DoulaBot(QBot):
 
     @when(command, cmd_is % 'help')
     def help(self, source, command, args):
-        for name in 'current_version', 'release', 'versions', 'push', 'cycle', 'release_java':
+        for name in sorted(['svnls', 'current_version', 'git_release', 'svn_release', 'versions', 'push', 'cycle', 'release_java']):
             method = getattr(self, name)
             self.broadcast(method.__doc__.strip())
 
     @when(command, cmd_is % 'cycle')
     def cycle(self, source, command, args, task=qtasks.cycle2):
         """
-        doula:cycle: billsvc@mt1
+        doula:cycle: bill*@mt1 | billweb:8100@mt2
         """
         user, o = source.split('!')
         args = [x.strip() for x in args.split('@')]
