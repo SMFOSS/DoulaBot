@@ -343,7 +343,7 @@ class DoulaBot(QBot):
     @when(command, cmd_is % 'relsvn')
     def svn_release(self, source, command, args):
         """
-        dbot: rel: [tree_other_than_py]pkg-0.9.8rc2[@branch]
+        dbot: relsvn: [tree_other_than_py]pkg-0.9.8rc2[@branch]
         """
         pkgv, branch, tokens, user = self._prep_release(source, args)
 
@@ -354,10 +354,10 @@ class DoulaBot(QBot):
         svnprefix = utils.urljoin(self.svnprefix, svntree)
         return self.enqueue(pypkg.pyrelease_svn_task, pkgv, branch, svnprefix, user)
 
-    @when(command, cmd_is % 'rel')
+    @when(command, cmd_is % 'relgit')
     def git_release(self, source, command, args):
         """
-        dbot: rel: [user_or_group/]pkg-0.1.1[@branch] (from git)
+        dbot: relgit: [user_or_group/]pkg-0.1.1[@branch] (from git)
         """
         pkgv, branch, tokens, user = self._prep_release(source, args)
 
@@ -409,7 +409,7 @@ class DoulaBot(QBot):
         self.broadcast('/me queues cycle for %s on %s' %(app, mt))
         self.enqueue(task, app, mt)
 
-    @when(command, cmd_is % 'push')
+    @when(command, ' or '.join([cmd_is % 'push', cmd_is % 'push2']))
     def push(self, source, command, args, task=pushmod.push2):
         """
         doula:push: howler-0.9.8rc2 -> billweb@mt2,billweb@mt2
