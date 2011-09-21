@@ -59,8 +59,8 @@ class GIRC(IRC):
 class BaseBot(SimpleIRCClient):
     nickname = 'bot' # command name
     channel = '#testing'
-    #server = 'irc.corp.surveymonkey.com'
-    server = 'irc'
+    server = 'irc.corp.surveymonkey.com'
+    #server = 'irc'
     port = 6667
     localaddress=""
     localport=0
@@ -401,7 +401,7 @@ class DoulaBot(QBot):
             self.broadcast('help for cycle: cycle: someapp@mt1' )
         app, mt = args
         self.broadcast('/me queues cycle for %s on %s' %(app, mt))
-        self.enqueue(task, app, mt)
+        self.enqueue(task, app, mt, user)
 
     @when(command, cmd_is % 'push')
     def push(self, source, command, args, task=pushmod.push2):
