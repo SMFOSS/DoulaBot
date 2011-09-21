@@ -314,7 +314,10 @@ class DoulaBot(QBot):
             self.broadcast("/me shakes it's metal booty for %s" %user)
 
     @when(command, cmd_is % 'svn')
-    def svn(self, source, command, args):
+    def svnls(self, source, command, args):
+        """
+        dbot: svnls: tree/path
+        """
         user, handle = source.split('!')
         if args == '':
             return self.broadcast("%s: you have to give me a path to work with..." %user)
@@ -340,7 +343,7 @@ class DoulaBot(QBot):
     @when(command, cmd_is % 'relsvn')
     def svn_release(self, source, command, args):
         """
-        doula: rel: howler-0.9.8rc2@blah
+        dbot: relsvn: [tree_other_than_py]pkg-0.9.8rc2[@branch]
         """
         pkgv, branch, tokens, user = self._prep_release(source, args)
 
@@ -351,8 +354,11 @@ class DoulaBot(QBot):
         svnprefix = utils.urljoin(self.svnprefix, svntree)
         return self.enqueue(pypkg.pyrelease_svn_task, pkgv, branch, svnprefix, user)
 
-    @when(command, cmd_is % 'rel')
+    @when(command, cmd_is % 'relgit')
     def git_release(self, source, command, args):
+        """
+        dbot: relgit: [user_or_group/]pkg-0.1.1[@branch] (from git)
+        """
         pkgv, branch, tokens, user = self._prep_release(source, args)
 
         ghuser = self.default_ghuser
@@ -385,14 +391,14 @@ class DoulaBot(QBot):
 
     @when(command, cmd_is % 'help')
     def help(self, source, command, args):
-        for name in 'current_version', 'release', 'versions', 'push', 'cycle', 'release_java':
+        for name in sorted(['svnls', 'current_version', 'git_release', 'svn_release', 'versions', 'push', 'cycle', 'release_java']):
             method = getattr(self, name)
             self.broadcast(method.__doc__.strip())
 
     @when(command, cmd_is % 'cycle')
     def cycle(self, source, command, args, task=qtasks.cycle2):
         """
-        doula:cycle: billsvc@mt1
+        doula:cycle: bill*@mt1 | billweb:8100@mt2
         """
         user, o = source.split('!')
         args = [x.strip() for x in args.split('@')]
@@ -403,7 +409,7 @@ class DoulaBot(QBot):
         self.broadcast('/me queues cycle for %s on %s' %(app, mt))
         self.enqueue(task, app, mt, user)
 
-    @when(command, cmd_is % 'push')
+    @when(command, ' or '.join([cmd_is % 'push', cmd_is % 'push2']))
     def push(self, source, command, args, task=pushmod.push2):
         """
         doula:push: howler-0.9.8rc2 -> billweb@mt2,billweb@mt2
