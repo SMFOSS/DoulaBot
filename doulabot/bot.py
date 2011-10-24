@@ -99,7 +99,6 @@ class BaseBot(SimpleIRCClient):
         bot.username = bot.ircname = bot.nickname = nickname
 
         for try_ in range(cls.retry):
-            import pdb;pdb.set_trace()
             try:
                 bot.connect(cls.server, cls.port, nickname, password=cls.password,
                             username=cls.username, ircname=cls.ircname, localaddress=cls.localaddress,
