@@ -99,6 +99,7 @@ class BaseBot(SimpleIRCClient):
         bot.username = bot.ircname = bot.nickname = nickname
 
         for try_ in range(cls.retry):
+            import pdb;pdb.set_trace()
             try:
                 bot.connect(cls.server, cls.port, nickname, password=cls.password,
                             username=cls.username, ircname=cls.ircname, localaddress=cls.localaddress,
@@ -243,6 +244,8 @@ class QBot(BaseBot):
         return self.resq.enqueue(*args, **kw)
 
 
+from setuptools.package_index import distros_for_url
+
 class DoulaBot(QBot):
     """
     Bot for pushing and releasing
@@ -268,30 +271,6 @@ class DoulaBot(QBot):
     @property
     def exec_str(self):
         return self.nickname + ':'
-
-    def _proc_vs(self, vs):
-        vout = []
-        for version in vs:
-            version, dis = version.split('.tar.gz')
-            pkg, vers = version.rsplit('-', 1)
-            #vers = self.v_regex.match(version).groups()[0]
-            vers_cpnt = [x for x in self.v_splitter.split(vers) if x != '.']
-            for cpnt in vers_cpnt:
-                if self.re_d.match(cpnt):
-                    vers_cpnt[vers_cpnt.index(cpnt)] = int(cpnt)
-            vout.append(vers_cpnt)
-        return vout
-
-    def sorted_versions(self, raw_vs):
-        versions = sorted(self._proc_vs(raw_vs))
-        for version in versions:
-            mode = version[-2:]
-            if isinstance(mode[0], basestring):
-                vers = version[:-2]
-                vers = ".".join(str(x) for x in vers)
-                yield vers + "%s%s" %tuple(mode)
-            else:
-                yield ".".join(str(x) for x in version)
     
     @abstract
     def command(self, source, command, args):
@@ -414,12 +393,13 @@ class DoulaBot(QBot):
         """
         doula:push: howler-0.9.8rc2 -> billweb@mt2,billweb@mt2
         """
+        user, o = source.split('!')
         pkgv, mts = [x.strip() for x in args.split('->')]
         mts = [x.strip() for x in mts.split(',')]
             
         for mt in mts:
-            self.broadcast('/me queues push to %s of %s' %(mt, pkgv))
-            self.enqueue(task, pkgv, mt)
+            self.broadcast('/me queues push to %s of %s for %s' %(mt, pkgv, user))
+            self.enqueue(task, pkgv, mt, user)
 
     def _fetch_versions(self, pkg):
         root = html.parse("%s/%s" %(self.index_url, pkg.strip())).getroot()
@@ -436,6 +416,16 @@ class DoulaBot(QBot):
             sleep(0.5)
             self.broadcast(version)
 
+    @staticmethod
+    def get_distro(url):
+        return next(distros_for_url(url))
+
+    def sorted_versions(self, raw_vs, reverse=False):
+        distros = (self.get_distro(url).parsed_version for url in raw_vs)
+        distros = sorted(distros, reverse=reverse)
+        for dist in distros:
+            yield "-".join(dist.egg_name().rsplit('-')[:-1])
+
     @when(command, cmd_is % 'cv')
     def current_version(self, source, command, args):
         """
@@ -448,9 +438,8 @@ class DoulaBot(QBot):
             return self.broadcast("/me could not find %s" %pkg)
         
         if vs:
-            versions = self.sorted_versions(vs)
-            last = [version for version in versions].pop()
-            self.broadcast("%s-%s" %(pkg, last))            
+            versions = self.sorted_versions(vs, reverse=True)
+            self.broadcast("%s-%s" %(pkg, next(versions)))            
  
 
     
