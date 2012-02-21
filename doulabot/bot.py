@@ -343,7 +343,6 @@ class DoulaBot(QBot):
         if len(tokens) == 2:
             ghuser, pkgv = tokens
 
-        #gitaddress = "%s:%s" %(self.default_gitssh, ghuser)
         return self.enqueue(pypkg.pyrelease_git_task, pkgv, branch, ghuser, user)
 
     javasrc = set(('billingdal', 'userdal'))
