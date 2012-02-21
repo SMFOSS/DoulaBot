@@ -25,7 +25,6 @@ import select
 import sys
 import traceback
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -99,7 +98,6 @@ class BaseBot(SimpleIRCClient):
         bot.username = bot.ircname = bot.nickname = nickname
 
         for try_ in range(cls.retry):
-            import pdb;pdb.set_trace()
             try:
                 bot.connect(cls.server, cls.port, nickname, password=cls.password,
                             username=cls.username, ircname=cls.ircname, localaddress=cls.localaddress,
@@ -421,7 +419,7 @@ class DoulaBot(QBot):
         return next(distros_for_url(url))
 
     def sorted_versions(self, raw_vs, reverse=False):
-        distros = (self.get_distro(url).parsed_version for url in raw_vs)
+        distros = (self.get_distro(url) for url in raw_vs)
         distros = sorted(distros, reverse=reverse)
         for dist in distros:
             yield "-".join(dist.egg_name().rsplit('-')[:-1])
