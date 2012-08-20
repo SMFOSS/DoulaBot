@@ -436,9 +436,10 @@ class DoulaBot(QBot):
         
         if vs:
             versions = self.sorted_versions(vs, reverse=True)
-            self.broadcast("%s-%s" %(pkg, next(versions)))            
+            self.broadcast(next(versions))            
  
 
     
         
+
 
